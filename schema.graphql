@@ -1,31 +1,20 @@
-type Execute @entity {
-  id: ID!
-  proposalId: BigInt! # uint256
+enum ProposalResult {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-type Propose @entity {
+type Proposer @entity {
   id: ID!
-  proposalId: BigInt! # uint256
-  proposer: Bytes! # address
-  target: Bytes! # address
-  data: Bytes! # bytes
+  address: String!
+  proposals: [Proposal!]! @derivedFrom(field: "proposer")
 }
 
-type RemoveVote @entity {
+type Proposal @entity {
   id: ID!
-  proposalId: BigInt! # uint256
-  voter: Bytes! # address
-}
-
-type Terminate @entity {
-  id: ID!
-  proposalId: BigInt! # uint256
-}
-
-type Vote @entity {
-  id: ID!
-  proposalId: BigInt! # uint256
-  voter: Bytes! # address
-  approve: Boolean! # bool
-  weight: BigInt! # uint256
+  proposalData: String!
+  proposer: Proposer!
+  result: ProposalResult!
+  cantYesVotes: BigInt!
+  cantNoVotes: BigInt!
 }

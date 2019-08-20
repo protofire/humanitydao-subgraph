@@ -1,61 +1,36 @@
-import {
-  Execute as ExecuteEvent,
-  Propose as ProposeEvent,
-  RemoveVote as RemoveVoteEvent,
-  Terminate as TerminateEvent,
-  Vote as VoteEvent
-} from "../generated/Contract/Contract"
-import {
-  Execute,
-  Propose,
-  RemoveVote,
-  Terminate,
-  Vote
-} from "../generated/schema"
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 
-export function handleExecute(event: ExecuteEvent): void {
-  let entity = new Execute(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.proposalId = event.params.proposalId
-  entity.save()
-}
+import {
+  Propose as ProposeEvent,
+  HumanityGovernance
+} from "../generated/HumanityGovernance/HumanityGovernance";
+import { Apply as ApplyEvent } from '../generated/TwitterHumanityApplicant/TwitterHumanityApplicant'
+import { Proposer, Proposal } from "../generated/schema";
+
+const proposalResultPending = "PENDING";
 
 export function handlePropose(event: ProposeEvent): void {
-  let entity = new Propose(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.proposalId = event.params.proposalId
-  entity.proposer = event.params.proposer
-  entity.target = event.params.target
-  entity.data = event.params.data
-  entity.save()
+  let proposerId =
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+  let proposer = new Proposer(proposerId);
+  proposer.address = ""; // we will fill this field in handleApply
+  proposer.save();
+
+  let humanityGovernance = getHumanityGovernanceInstance(event.address);
+
+  let proposalId = event.params.proposalId.toHex();
+  let proposal = new Proposal(proposalId);
+  proposal.proposalData = ""; // we will fill this field in handleApply
+  proposal.proposer = proposerId;
+  proposal.result = proposalResultPending;
+  proposal.cantYesVotes = humanityGovernance.proposalFee();
+  proposal.cantNoVotes = BigInt.fromI32(0);
+  proposal.save();
 }
 
-export function handleRemoveVote(event: RemoveVoteEvent): void {
-  let entity = new RemoveVote(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.proposalId = event.params.proposalId
-  entity.voter = event.params.voter
-  entity.save()
+export function handleApply(event: ApplyEvent): void {
 }
 
-export function handleTerminate(event: TerminateEvent): void {
-  let entity = new Terminate(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.proposalId = event.params.proposalId
-  entity.save()
-}
-
-export function handleVote(event: VoteEvent): void {
-  let entity = new Vote(
-    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
-  )
-  entity.proposalId = event.params.proposalId
-  entity.voter = event.params.voter
-  entity.approve = event.params.approve
-  entity.weight = event.params.weight
-  entity.save()
+function getHumanityGovernanceInstance(address: Address): HumanityGovernance {
+  return HumanityGovernance.bind(address);
 }
