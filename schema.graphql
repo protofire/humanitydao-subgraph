@@ -1,0 +1,31 @@
+type Execute @entity {
+  id: ID!
+  proposalId: BigInt! # uint256
+}
+
+type Propose @entity {
+  id: ID!
+  proposalId: BigInt! # uint256
+  proposer: Bytes! # address
+  target: Bytes! # address
+  data: Bytes! # bytes
+}
+
+type RemoveVote @entity {
+  id: ID!
+  proposalId: BigInt! # uint256
+  voter: Bytes! # address
+}
+
+type Terminate @entity {
+  id: ID!
+  proposalId: BigInt! # uint256
+}
+
+type Vote @entity {
+  id: ID!
+  proposalId: BigInt! # uint256
+  voter: Bytes! # address
+  approve: Boolean! # bool
+  weight: BigInt! # uint256
+}

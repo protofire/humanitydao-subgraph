@@ -1,0 +1,35 @@
+specVersion: 0.0.1
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: Contract
+    network: mainnet
+    source:
+      address: "0xdd806c4fdad2949a97fda79036cfbb8750181b37"
+      abi: Contract
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.2
+      language: wasm/assemblyscript
+      entities:
+        - Execute
+        - Propose
+        - RemoveVote
+        - Terminate
+        - Vote
+      abis:
+        - name: Contract
+          file: ./abis/Contract.json
+      eventHandlers:
+        - event: Execute(indexed uint256)
+          handler: handleExecute
+        - event: Propose(indexed uint256,indexed address,indexed address,bytes)
+          handler: handlePropose
+        - event: RemoveVote(indexed uint256,indexed address)
+          handler: handleRemoveVote
+        - event: Terminate(indexed uint256)
+          handler: handleTerminate
+        - event: Vote(indexed uint256,indexed address,bool,uint256)
+          handler: handleVote
+      file: ./src/mapping.ts
