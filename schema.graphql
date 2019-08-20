@@ -1,0 +1,20 @@
+enum ProposalResult {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+type Proposer @entity {
+  id: ID!
+  address: String!
+  proposals: [Proposal!]! @derivedFrom(field: "proposer")
+}
+
+type Proposal @entity {
+  id: ID!
+  proposalData: String!
+  proposer: Proposer!
+  result: ProposalResult!
+  countYesVotes: BigInt!
+  countNoVotes: BigInt!
+}
