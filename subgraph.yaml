@@ -19,8 +19,16 @@ dataSources:
         - name: HumanityGovernance
           file: ./abis/HumanityGovernance.json
       eventHandlers:
-        - event: Propose(indexed uint256,indexed address,indexed address,bytes)
-          handler: handlePropose
+       - event: Execute(indexed uint256)
+         handler: handleExecute
+       - event: Propose(indexed uint256,indexed address,indexed address,bytes)
+         handler: handlePropose
+       - event: RemoveVote(indexed uint256,indexed address)
+         handler: handleRemoveVote
+       - event: Terminate(indexed uint256)
+         handler: handleTerminate
+       - event: Vote(indexed uint256,indexed address,bool,uint256)
+         handler: handleVote
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: TwitterHumanityApplicant
