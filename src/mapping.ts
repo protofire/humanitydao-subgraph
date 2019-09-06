@@ -18,16 +18,18 @@ let ONE = BigInt.fromI32(1)
 let ZERO = BigInt.fromI32(0)
 
 export function handlePropose(event: ProposeEvent): void {
-  let proposerId = event.transaction.hash.toHex() + '-' + event.logIndex.toString()
-  let proposer = new Proposer(proposerId)
-  proposer.address = '' // we will fill this field in handleApply
-  proposer.save()
-
   let humanityGovernance = getHumanityGovernanceInstance(event.address)
 
   let proposalId = event.params.proposalId.toHex()
+
+  let proposerId = event.transaction.hash.toHex() + '-' + event.logIndex.toString()
+  let proposer = new Proposer(proposerId)
+  proposer.address = humanityGovernance.proposals(event.params.proposalId).value4.toHex()
+  proposer.save()
+
   let proposal = new Proposal(proposalId)
   proposal.proposalData = '' // we will fill this field in handleApply
+  proposal.proposalAddress = '' // we will fill this field in handleApply
   proposal.proposer = proposerId
   proposal.result = proposalResultPending
   proposal.cantYesVotes = humanityGovernance.proposalFee()
@@ -52,16 +54,9 @@ export function handleApply(event: ApplyEvent): void {
     log.critical('handleApply: Proposal with id {} not found.', [proposalId])
   }
 
-  let proposer = Proposer.load(proposal.proposer)
-  if (proposer == null) {
-    log.critical('handleApply: Proposer with id {} not found', [proposal.proposer])
-  }
-
   proposal.proposalData = event.params.username
+  proposal.proposalAddress = event.params.applicant.toHex()
   proposal.save()
-
-  proposer.address = event.params.applicant.toHex()
-  proposer.save()
 }
 
 export function handleVote(event: VoteEvent): void {
