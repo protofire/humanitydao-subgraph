@@ -12,7 +12,7 @@ const proposalResultPending = 'PENDING'
 export function handlePropose(event: ProposeEvent): void {
   let proposerId = event.transaction.hash.toHex() + '-' + event.logIndex.toString()
   let proposer = new Proposer(proposerId)
-  proposer.address = '' // we will fill this field in handleApply
+  proposer.address = '' // we will fill this field later on
   proposer.save()
 
   let humanityGovernance = getHumanityGovernanceInstance(event.address)
@@ -20,6 +20,7 @@ export function handlePropose(event: ProposeEvent): void {
   let proposalId = event.params.proposalId.toHex()
   let proposal = new Proposal(proposalId)
   proposal.proposalData = '' // we will fill this field in handleApply
+  proposal.proposalAddress = '' // we will fill this field in handleApply
   proposal.proposer = proposerId
   proposal.result = proposalResultPending
   proposal.countYesVotes = humanityGovernance.proposalFee()

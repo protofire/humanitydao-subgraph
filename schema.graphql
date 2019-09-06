@@ -13,6 +13,7 @@ type Proposer @entity {
 type Proposal @entity {
   id: ID!
   proposalData: String!
+  proposalAddress: String!
   proposer: Proposer!
   result: ProposalResult!
   countYesVotes: BigInt!
