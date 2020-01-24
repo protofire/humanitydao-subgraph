@@ -1,35 +1,36 @@
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
-enum ProposalResult {
- PENDING
- APPROVED
- REJECTED
+type Human @entity {
+  id: ID!
+  address: String!
+  twitter: String!
+  proposer: Proposer!
+  status: Status!
+  countYesVotes: BigInt!
+  countNoVotes: BigInt!
 }
 
 type Proposer @entity {
- id: ID!
- address: String!
- proposals: [Proposal!]! @derivedFrom(field: "proposer")
+  id: ID!
+  address: String!
+  proposals: [Human!]! @derivedFrom(field: "proposer")
 }
 
-type Proposal @entity {
- id: ID!
- proposalData: String!
- proposalAddress: String!
- proposer: Proposer!
- result: ProposalResult!
- cantYesVotes: BigInt!
- cantNoVotes: BigInt!
-}
-
-type ProposalVote @entity {
- id: ID! # proposal.id + proposer.id
- cantYesVotes: BigInt!
- cantNoVotes: BigInt!
+type ProposerHumanVote @entity {
+  id: ID!
+  countYesVotes: BigInt!
+  countNoVotes: BigInt!
+  proposer: Proposer!
+  human: Human!
 }
 
 type GlobalResult @entity {
- id: ID! # fixed to 0x0
- cantApproved: BigInt!
- cantRejected: BigInt!
- cantPending: BigInt!
+  id: ID! # fixed to 0x0
+  countApproved: BigInt!
+  countRejected: BigInt!
+  countPending: BigInt!
 }
