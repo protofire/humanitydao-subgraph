@@ -28,9 +28,11 @@ export function handlePropose(event: ProposeEvent): void {
   proposer.save()
 
   let human = new Human(humanId)
+  let proposerList = new Array<string>(1)
+  proposerList.push(proposerId)
   human.twitter = '' // we will fill this field in handleApply
   human.address = '' // we will fill this field in handleApply
-  human.proposer = proposerId
+  human.proposers = proposerList
   human.status = statusPending
   human.countYesVotes = humanityGovernance.proposalFee()
   human.countNoVotes = ZERO
@@ -98,6 +100,9 @@ export function handleVote(event: VoteEvent): void {
     human.countNoVotes = human.countNoVotes.plus(weight)
     proposerHumanVotes.countNoVotes = proposerHumanVotes.countNoVotes.plus(weight)
   }
+  let newProposers = human.proposers
+  newProposers.push(proposerId)
+  human.proposers = newProposers
 
   human.save()
   proposerHumanVotes.save()
@@ -122,6 +127,9 @@ export function handleRemoveVote(event: RemoveVoteEvent): void {
 
   human.countYesVotes = human.countYesVotes.minus(proposerHumanVotes.countYesVotes)
   human.countNoVotes = human.countNoVotes.minus(proposerHumanVotes.countNoVotes)
+  let newProposers = human.proposers
+  newProposers.splice(newProposers.indexOf(proposerHumanVotes.proposer), 1)
+  human.proposers = newProposers
   human.save()
 
   proposerHumanVotes.countYesVotes = ZERO

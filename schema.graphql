@@ -8,7 +8,7 @@ type Human @entity {
   id: ID!
   address: String!
   twitter: String!
-  proposer: Proposer!
+  proposers: [Proposer!]!
   status: Status!
   countYesVotes: BigInt!
   countNoVotes: BigInt!
@@ -17,7 +17,7 @@ type Human @entity {
 type Proposer @entity {
   id: ID!
   address: String!
-  proposals: [Human!]! @derivedFrom(field: "proposer")
+  proposals: [Human!]! @derivedFrom(field: "proposers")
 }
 
 type ProposerHumanVote @entity {
