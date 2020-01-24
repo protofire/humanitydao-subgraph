@@ -4,27 +4,42 @@ enum Status {
   REJECTED
 }
 
+"Human applicant which wants to join the system"
 type Human @entity {
   id: ID!
+  "Address for the applicant's proposal"
   address: String!
+  "Twitter username for the applicant"
   twitter: String!
+  "List of proposers who voted on the applicants' proposal"
   proposers: [Proposer!]!
+  "Status of the applicants' proposal"
   status: Status!
+  "Amount of votes to include the applicant to the system"
   countYesVotes: BigInt!
+  "Amount of votes to reject the applicant from the system"
   countNoVotes: BigInt!
 }
 
+"Proposer who votes on human application proposals"
 type Proposer @entity {
   id: ID!
+  "Address for the proposer"
   address: String!
+  "Proposals on which the proposer has participated"
   proposals: [Human!]! @derivedFrom(field: "proposers")
 }
 
+"Voting relationship between a human applicant proposal and a proposer"
 type ProposerHumanVote @entity {
   id: ID!
+  "Amount of votes to include the applicant to the system"
   countYesVotes: BigInt!
+  "Amount of votes to reject the applicant from the system"
   countNoVotes: BigInt!
+  "Proposer who voted"
   proposer: Proposer!
+  "Human applicant who received the votes"
   human: Human!
 }
 
