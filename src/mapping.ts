@@ -9,142 +9,163 @@ import {
   HumanityGovernance,
 } from '../generated/HumanityGovernance/HumanityGovernance'
 import { Apply as ApplyEvent } from '../generated/TwitterHumanityApplicant/TwitterHumanityApplicant'
-import { Proposer, Proposal, ProposalVote, GlobalResult } from '../generated/schema'
+import { Human, Proposer, ProposerHumanVote, GlobalResult } from '../generated/schema'
 
-const proposalResultPending = 'PENDING'
-const proposalResultApproved = 'APPROVED'
-const proposalResultRejected = 'REJECTED'
+const statusPending = 'PENDING'
+const statusApproved = 'APPROVED'
+const statusRejected = 'REJECTED'
 let ONE = BigInt.fromI32(1)
 let ZERO = BigInt.fromI32(0)
 
 export function handlePropose(event: ProposeEvent): void {
   let humanityGovernance = getHumanityGovernanceInstance(event.address)
 
-  let proposalId = event.params.proposalId.toHex()
+  let humanId = event.params.proposalId.toHex()
 
   let proposerId = event.transaction.hash.toHex() + '-' + event.logIndex.toString()
   let proposer = new Proposer(proposerId)
   proposer.address = humanityGovernance.proposals(event.params.proposalId).value4.toHex()
   proposer.save()
 
-  let proposal = new Proposal(proposalId)
-  proposal.proposalData = '' // we will fill this field in handleApply
-  proposal.proposalAddress = '' // we will fill this field in handleApply
-  proposal.proposer = proposerId
-  proposal.result = proposalResultPending
-  proposal.cantYesVotes = humanityGovernance.proposalFee()
-  proposal.cantNoVotes = ZERO
-  proposal.save()
+  let human = new Human(humanId)
+  let proposerList = new Array<string>(1)
+  proposerList.push(proposerId)
+  human.twitter = '' // we will fill this field in handleApply
+  human.address = '' // we will fill this field in handleApply
+  human.proposers = proposerList
+  human.status = statusPending
+  human.countYesVotes = humanityGovernance.proposalFee()
+  human.countNoVotes = ZERO
+  human.save()
 
-  let proposalVote = new ProposalVote(proposalId + '-' + proposerId)
-  proposalVote.cantYesVotes = proposal.cantYesVotes
-  proposalVote.cantNoVotes = ZERO
-  proposalVote.save()
+  let proposerHumanVotesId = humanId + '-' + proposerId
+  let proposerHumanVotes = new ProposerHumanVote(proposerHumanVotesId)
+  proposerHumanVotes.countYesVotes = human.countYesVotes
+  proposerHumanVotes.countNoVotes = ZERO
+  proposerHumanVotes.proposer = proposerId
+  proposerHumanVotes.human = humanId
+  proposerHumanVotes.save()
 
   let globalResult = getGlobalResultEntity()
-  globalResult.cantPending = globalResult.cantPending.plus(ONE)
+  globalResult.countPending = globalResult.countPending.plus(ONE)
   globalResult.save()
 }
 
 export function handleApply(event: ApplyEvent): void {
-  let proposalId = event.params.proposalId.toHex()
-  let proposal = Proposal.load(proposalId)
+  let humanId = event.params.proposalId.toHex()
+  let human = Human.load(humanId)
 
-  if (proposal == null) {
-    log.critical('handleApply: Proposal with id {} not found.', [proposalId])
+  if (human == null) {
+    log.critical('handleApply: Human with id {} not found.', [humanId])
   }
 
-  proposal.proposalData = event.params.username
-  proposal.proposalAddress = event.params.applicant.toHex()
-  proposal.save()
+  human.twitter = event.params.username
+  human.address = event.params.applicant.toHex()
+  human.save()
 }
 
 export function handleVote(event: VoteEvent): void {
-  // Load proposal
-  let proposalId = event.params.proposalId.toHex()
-  let proposal = Proposal.load(proposalId)
-  if (proposal == null) {
-    log.critical('handleVote: Proposal with id {} not found', [proposalId])
+  let humanityGovernance = getHumanityGovernanceInstance(event.address)
+
+  let proposerId = event.transaction.hash.toHex() + '-' + event.logIndex.toString()
+  let proposer = new Proposer(proposerId)
+  proposer.address = humanityGovernance.proposals(event.params.proposalId).value4.toHex()
+  proposer.save()
+
+  // Load Human
+  let humanId = event.params.proposalId.toHex()
+  let human = Human.load(humanId)
+  if (human == null) {
+    log.critical('handleVote: Human with id {} not found', [humanId])
   }
 
-  // Load proposalVotes
-  let proposalVotesId = proposal.id + '-' + event.params.voter.toHex()
-  let proposalVote = ProposalVote.load(proposalVotesId)
+  // Load ProposerHumanVotes
+  let proposerHumanVotesId = human.id + '-' + event.params.voter.toHex()
+  let proposerHumanVotes = ProposerHumanVote.load(proposerHumanVotesId)
+
   // voter is different than proposer
-  if (proposalVote == null) {
-    proposalVote = new ProposalVote(proposalVotesId)
-    proposalVote.cantYesVotes = ZERO
-    proposalVote.cantNoVotes = ZERO
+  if (proposerHumanVotes == null) {
+    proposerHumanVotes = new ProposerHumanVote(proposerHumanVotesId)
+    proposerHumanVotes.countYesVotes = ZERO
+    proposerHumanVotes.countNoVotes = ZERO
+    proposerHumanVotes.proposer = proposerId
+    proposerHumanVotes.human = humanId
   }
 
   let weight = event.params.weight
   if (event.params.approve) {
-    proposal.cantYesVotes = proposal.cantYesVotes.plus(weight)
-    proposalVote.cantYesVotes = proposalVote.cantYesVotes.plus(weight)
+    human.countYesVotes = human.countYesVotes.plus(weight)
+    proposerHumanVotes.countYesVotes = proposerHumanVotes.countYesVotes.plus(weight)
   } else {
-    proposal.cantNoVotes = proposal.cantNoVotes.plus(weight)
-    proposalVote.cantNoVotes = proposalVote.cantNoVotes.plus(weight)
+    human.countNoVotes = human.countNoVotes.plus(weight)
+    proposerHumanVotes.countNoVotes = proposerHumanVotes.countNoVotes.plus(weight)
   }
+  let newProposers = human.proposers
+  newProposers.push(proposerId)
+  human.proposers = newProposers
 
-  proposal.save()
-  proposalVote.save()
+  human.save()
+  proposerHumanVotes.save()
 }
 
 export function handleRemoveVote(event: RemoveVoteEvent): void {
-  // Load proposal
-  let proposalId = event.params.proposalId.toHex()
-  let proposal = Proposal.load(proposalId)
-  if (proposal == null) {
-    log.critical('handleRemoveVote: Proposal with id {} not found id', [proposalId])
+  // Load human
+  let humanId = event.params.proposalId.toHex()
+  let human = Human.load(humanId)
+  if (human == null) {
+    log.critical('handleRemoveVote: Human with id {} not found id', [humanId])
   }
 
-  // Load proposalVotes
-  let proposalVotesId = proposal.id + '-' + event.params.voter.toHex()
-  let proposalVote = ProposalVote.load(proposalVotesId)
-  if (proposalVote == null) {
-    log.critical('handleRemoveVote: ProposalVotes with id {} not found', [
-      proposalVotesId,
+  // Load ProposerHumanVotes
+  let proposerHumanVotesId = human.id + '-' + event.params.voter.toHex()
+  let proposerHumanVotes = ProposerHumanVote.load(proposerHumanVotesId)
+  if (proposerHumanVotes == null) {
+    log.critical('handleRemoveVote: ProposerHumanVote with id {} not found', [
+      proposerHumanVotesId,
     ])
   }
 
-  proposal.cantYesVotes = proposal.cantYesVotes.minus(proposalVote.cantYesVotes)
-  proposal.cantNoVotes = proposal.cantNoVotes.minus(proposalVote.cantNoVotes)
-  proposal.save()
+  human.countYesVotes = human.countYesVotes.minus(proposerHumanVotes.countYesVotes)
+  human.countNoVotes = human.countNoVotes.minus(proposerHumanVotes.countNoVotes)
+  let newProposers = human.proposers
+  newProposers.splice(newProposers.indexOf(proposerHumanVotes.proposer), 1)
+  human.proposers = newProposers
+  human.save()
 
-  proposalVote.cantYesVotes = ZERO
-  proposalVote.cantNoVotes = ZERO
-  proposalVote.save()
+  proposerHumanVotes.countYesVotes = ZERO
+  proposerHumanVotes.countNoVotes = ZERO
+  proposerHumanVotes.save()
 }
 
 export function handleExecute(event: ExecuteEvent): void {
-  let proposalId = event.params.proposalId.toHex()
-  let proposal = Proposal.load(proposalId)
-  if (proposal == null) {
-    log.critical('handleVote: Proposal with id {} not found id', [proposalId])
+  let humanId = event.params.proposalId.toHex()
+  let human = Human.load(humanId)
+  if (human == null) {
+    log.critical('handleVote: Human with id {} not found id', [humanId])
   }
 
-  proposal.result = proposalResultApproved
-  proposal.save()
+  human.status = statusApproved
+  human.save()
 
   let globalResult = getGlobalResultEntity()
-  globalResult.cantApproved = globalResult.cantApproved.plus(ONE)
-  globalResult.cantPending = globalResult.cantPending.minus(ONE)
+  globalResult.countApproved = globalResult.countApproved.plus(ONE)
+  globalResult.countPending = globalResult.countPending.minus(ONE)
   globalResult.save()
 }
 
 export function handleTerminate(event: TerminateEvent): void {
-  let proposalId = event.params.proposalId.toHex()
-  let proposal = Proposal.load(proposalId)
-  if (proposal == null) {
-    log.critical('handleVote: Proposal with id {} not found id', [proposalId])
+  let humanId = event.params.proposalId.toHex()
+  let human = Human.load(humanId)
+  if (human == null) {
+    log.critical('handleVote: Human with id {} not found id', [humanId])
   }
 
-  proposal.result = proposalResultRejected
-  proposal.save()
+  human.status = statusRejected
+  human.save()
 
   let globalResult = getGlobalResultEntity()
-  globalResult.cantRejected = globalResult.cantRejected.plus(ONE)
-  globalResult.cantPending = globalResult.cantPending.minus(ONE)
+  globalResult.countRejected = globalResult.countRejected.plus(ONE)
+  globalResult.countPending = globalResult.countPending.minus(ONE)
   globalResult.save()
 }
 
@@ -158,9 +179,9 @@ function getGlobalResultEntity(): GlobalResult {
 
   if (globalResult == null) {
     globalResult = new GlobalResult(globalId)
-    globalResult.cantApproved = ZERO
-    globalResult.cantRejected = ZERO
-    globalResult.cantPending = ZERO
+    globalResult.countApproved = ZERO
+    globalResult.countRejected = ZERO
+    globalResult.countPending = ZERO
   }
 
   return globalResult as GlobalResult

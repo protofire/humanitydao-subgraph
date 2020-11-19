@@ -1,35 +1,51 @@
-
-enum ProposalResult {
- PENDING
- APPROVED
- REJECTED
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
+"Human applicant which wants to join the system"
+type Human @entity {
+  id: ID!
+  "Address for the applicant's proposal"
+  address: String!
+  "Twitter username for the applicant"
+  twitter: String!
+  "List of proposers who voted on the applicants' proposal"
+  proposers: [Proposer!]!
+  "Status of the applicants' proposal"
+  status: Status!
+  "Amount of votes to include the applicant to the system"
+  countYesVotes: BigInt!
+  "Amount of votes to reject the applicant from the system"
+  countNoVotes: BigInt!
+}
+
+"Proposer who votes on human application proposals"
 type Proposer @entity {
- id: ID!
- address: String!
- proposals: [Proposal!]! @derivedFrom(field: "proposer")
+  id: ID!
+  "Address for the proposer"
+  address: String!
+  "Proposals on which the proposer has participated"
+  proposals: [Human!]! @derivedFrom(field: "proposers")
 }
 
-type Proposal @entity {
- id: ID!
- proposalData: String!
- proposalAddress: String!
- proposer: Proposer!
- result: ProposalResult!
- cantYesVotes: BigInt!
- cantNoVotes: BigInt!
-}
-
-type ProposalVote @entity {
- id: ID! # proposal.id + proposer.id
- cantYesVotes: BigInt!
- cantNoVotes: BigInt!
+"Voting relationship between a human applicant proposal and a proposer"
+type ProposerHumanVote @entity {
+  id: ID!
+  "Amount of votes to include the applicant to the system"
+  countYesVotes: BigInt!
+  "Amount of votes to reject the applicant from the system"
+  countNoVotes: BigInt!
+  "Proposer who voted"
+  proposer: Proposer!
+  "Human applicant who received the votes"
+  human: Human!
 }
 
 type GlobalResult @entity {
- id: ID! # fixed to 0x0
- cantApproved: BigInt!
- cantRejected: BigInt!
- cantPending: BigInt!
+  id: ID! # fixed to 0x0
+  countApproved: BigInt!
+  countRejected: BigInt!
+  countPending: BigInt!
 }
